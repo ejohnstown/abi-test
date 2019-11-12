@@ -27,16 +27,16 @@ git checkout master
 git fetch origin
 git reset --hard origin/master
 
-./autogen.sh >/dev/null 2>&1
-./configure --disable-dependency-tracking --disable-shared >/dev/null
-make examples/server/server >/dev/null
+./autogen.sh
+./configure --disable-dependency-tracking --disable-shared
+make examples/server/server
 cp examples/server/server "$_pwd"
 cp "${_certs[@]}" "$_pwd/certs"
 
 git checkout "$_reftag"
-./autogen.sh >/dev/null 2>&1
-./configure --disable-dependency-tracking --disable-static --prefix="$_pwd/local" >/dev/null
-make install >/dev/null
+./autogen.sh
+./configure --disable-dependency-tracking --disable-static --prefix="$_pwd/local" CFLAGS="-Wno-error=implicit-fallthrough"
+make install
 popd
 
 echo "$(ls $_pwd/local/lib)"
@@ -69,9 +69,9 @@ fi
 pushd wolfssl
 rm -f support/wolfssl.pc
 git checkout master
-./autogen.sh >/dev/null 2>&1
-./configure --disable-dependency-tracking --disable-static --prefix="$_pwd/local" >/dev/null
-make install >/dev/null
+./autogen.sh
+./configure --disable-dependency-tracking --disable-static --prefix="$_pwd/local"
+make install
 popd
 if ./a.out
 then
