@@ -27,6 +27,7 @@ git checkout master
 git fetch origin
 git reset --hard origin/master
 
+echo "Building the server tool"
 ./autogen.sh
 ./configure --disable-dependency-tracking --disable-shared
 make examples/server/server
@@ -35,18 +36,20 @@ cp "${_certs[@]}" "$_pwd/certs"
 
 git checkout "$_reftag"
 ./autogen.sh
-./configure --disable-dependency-tracking --disable-static --prefix="$_pwd/local" CFLAGS="-Wno-error=implicit-fallthrough"
+./configure --disable-dependency-tracking --disable-static --prefix="$_pwd/local"
 make install
 popd
 
-echo "$(ls $_pwd/local/lib)"
+export LD_LIBRARY_PATH="$_pwd/local/lib"
+
+echo "updating library link"
 case "$(ls $_pwd/local/lib)" in
 *.dylib*)
     _oln="libwolfssl.3.dylib"
     _ln="libwolfssl.dylib"
     ;;
 *.so*)
-    _oln="libwolfssl.3.so"
+    _oln="libwolfssl.so.3"
     _ln="libwolfssl.so"
     ;;
 esac
@@ -66,6 +69,7 @@ then
     exit 1
 fi
 
+echo "Installing current wolfSSL"
 pushd wolfssl
 rm -f support/wolfssl.pc
 git checkout master
@@ -79,6 +83,7 @@ then
     exit 1
 fi
 
+echo "linking old library to current library"
 pushd local/lib
 ln -sf "$_ln" "$_oln"
 popd
