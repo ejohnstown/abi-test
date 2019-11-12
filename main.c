@@ -17,6 +17,7 @@
 #include <sys/socket.h>
 #include <pthread.h>
 #include <fcntl.h>
+#include <signal.h>
 
 typedef struct sockaddr_in  SOCKADDR_IN_T;
 #define SOCKET_T int
