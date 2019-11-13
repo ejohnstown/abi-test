@@ -18,7 +18,7 @@ then
 fi
 
 echo "Cleanup from previous run"
-rm -rf local server certs wolfssl/support/wolfssl.pc
+rm -rf abi-ready local server certs wolfssl/support/wolfssl.pc
 mkdir -p local certs
 
 pushd wolfssl
@@ -28,16 +28,16 @@ git fetch origin
 git reset --hard origin/master
 
 echo "Building the server tool"
-./autogen.sh
-./configure --disable-dependency-tracking --disable-shared
-make examples/server/server
+./autogen.sh >/dev/null 2>&1
+./configure --disable-dependency-tracking --disable-shared >/dev/null
+make examples/server/server >/dev/null
 cp examples/server/server "$_pwd"
 cp "${_certs[@]}" "$_pwd/certs"
 
-git checkout "$_reftag"
-./autogen.sh
-./configure --disable-dependency-tracking --disable-static --prefix="$_pwd/local"
-make install
+git checkout "$_reftag" >/dev/null 2>&1
+./autogen.sh >/dev/null 2>&1
+./configure --disable-dependency-tracking --disable-static --prefix="$_pwd/local" >/dev/null
+make install >/dev/null
 popd
 
 export LD_LIBRARY_PATH="$_pwd/local/lib"
@@ -55,17 +55,33 @@ case "$(ls $_pwd/local/lib)" in
 esac
 
 gcc main.c -L./local/lib -I./local/include -lwolfssl
-./server -d &
-if ! ./a.out
+./server -d -i -p 0 -R abi-ready &
+_pid=$!
+
+_counter=0
+while test ! -s abi-ready -a "$_counter" -lt 20
+do
+	echo "waiting for ready file..."
+	sleep 0.1
+	_counter=$((_counter+1))
+done
+
+echo "case 1: built and run with old library"
+if ! ./a.out "$(cat abi-ready)"
 then
     echo "case 1: Expected success, failed. Fail."
+	kill $_pid
     exit 1
 fi
 
-rm -f "local/lib/$_oln"
-if ./a.out
+echo "Vaporize local install directory"
+rm -rf local
+
+echo "case 2: no library"
+if ./a.out "$(cat abi-ready)"
 then
     echo "case 2: Expected failure, passed. Fail."
+	kill $_pid
     exit 1
 fi
 
@@ -73,13 +89,16 @@ echo "Installing current wolfSSL"
 pushd wolfssl
 rm -f support/wolfssl.pc
 git checkout master
-./autogen.sh
-./configure --disable-dependency-tracking --disable-static --prefix="$_pwd/local"
-make install
+./autogen.sh >/dev/null 2>&1
+./configure --disable-dependency-tracking --disable-static --prefix="$_pwd/local" >/dev/null
+make install >/dev/null
 popd
-if ./a.out
+
+echo "case 3: built with old library, running with new"
+if ./a.out "$(cat abi-ready)"
 then
     echo "case 3: Expected failure, passed. Fail."
+	kill $_pid
     exit 1
 fi
 
@@ -87,10 +106,16 @@ echo "linking old library to current library"
 pushd local/lib
 ln -sf "$_ln" "$_oln"
 popd
-./server -d &
-if ! ./a.out
+
+echo "case 4: built with old library, running with new linked as old"
+if ! ./a.out "$(cat abi-ready)"
 then
     echo "case 4: Expected success, failed. Fail."
+	kill $_pid
     exit 1
 fi
 
+kill $_pid >/dev/null 2>&1
+rm -f abi-ready
+
+echo "end"

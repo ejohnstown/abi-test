@@ -165,8 +165,18 @@ static inline void tcp_connect(SOCKET_T* sockfd, const char* ip,
 }
 
 
-int main()
+int main(int argc, char* argv[])
 {
+    int port = 11111;
+
+    if (argc > 1) {
+        port = atoi(argv[1]);
+        if (port == 0) {
+            printf("bad port number (%s)\n", argv[1]);
+            return 1;
+        }
+    }
+
     printf("hello\n");
 
     WOLFSSL_CTX* ctx = wolfSSL_CTX_new(wolfTLSv1_2_client_method());
@@ -181,7 +191,7 @@ int main()
 
     SOCKET_T sfd;
 
-    tcp_connect(&sfd, "localhost", 11111);
+    tcp_connect(&sfd, "localhost", port);
 
     wolfSSL_set_fd(ssl, sfd);
 
