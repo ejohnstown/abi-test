@@ -183,7 +183,7 @@ int main(int argc, char* argv[])
     if (ctx) printf("got a good ctx\n");
 
     int ret;
-    ret = wolfSSL_CTX_load_verify_locations(ctx, "./ca-cert.pem", 0);
+    ret = wolfSSL_CTX_load_verify_locations(ctx, "./certs/ca-cert.pem", 0);
     printf("load verify ret = %d\n", ret);
 
     WOLFSSL* ssl = wolfSSL_new(ctx);

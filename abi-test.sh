@@ -3,6 +3,7 @@
 _pwd="$PWD"
 _reftag="v3.10.0-stable"
 _certs=(
+    certs/ca-cert.pem
     certs/client-cert.pem
     certs/dh2048.pem
     certs/ntru-key.raw

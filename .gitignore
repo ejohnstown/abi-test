@@ -1,5 +1,5 @@
 wolfssl
 local
-a.out
 server
 certs
+client
