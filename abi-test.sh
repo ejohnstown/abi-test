@@ -55,7 +55,7 @@ case "$(ls $_pwd/local/lib)" in
     ;;
 esac
 
-gcc main.c -L./local/lib -I./local/include -lwolfssl
+gcc -o client client.c -L./local/lib -I./local/include -lwolfssl
 ./server -d -i -p 0 -R abi-ready &
 _pid=$!
 
@@ -68,7 +68,7 @@ do
 done
 
 echo "case 1: built and run with old library"
-if ! ./a.out "$(cat abi-ready)"
+if ! ./client "$(cat abi-ready)"
 then
     echo "case 1: Expected success, failed. Fail."
 	kill $_pid
@@ -79,7 +79,7 @@ echo "Vaporize local install directory"
 rm -rf local
 
 echo "case 2: no library"
-if ./a.out "$(cat abi-ready)"
+if ./client "$(cat abi-ready)"
 then
     echo "case 2: Expected failure, passed. Fail."
 	kill $_pid
@@ -96,7 +96,7 @@ make install >/dev/null
 popd
 
 echo "case 3: built with old library, running with new"
-if ./a.out "$(cat abi-ready)"
+if ./client "$(cat abi-ready)"
 then
     echo "case 3: Expected failure, passed. Fail."
 	kill $_pid
@@ -109,7 +109,7 @@ ln -sf "$_ln" "$_oln"
 popd
 
 echo "case 4: built with old library, running with new linked as old"
-if ! ./a.out "$(cat abi-ready)"
+if ! ./client "$(cat abi-ready)"
 then
     echo "case 4: Expected success, failed. Fail."
 	kill $_pid
