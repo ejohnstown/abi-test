@@ -165,8 +165,61 @@ static inline void tcp_connect(SOCKET_T* sockfd, const char* ip,
 }
 
 
+static int dumpTime(const char* desc, const unsigned char* time)
+{
+    int i, length;
+    unsigned char flatTime[64];
+    unsigned char type;
+
+    type = time[0];
+    length = (int)time[1];
+
+    memcpy(flatTime, &time[2], length);
+    flatTime[length] = '\0';
+
+    printf("  %12s: (%u) %s\n", desc, type, flatTime);
+
+    return 0;
+}
+
+
+static int dumpCert(const char* desc, WOLFSSL_X509* cert)
+{
+    WOLFSSL_X509_NAME* xName;
+    const unsigned char* xTime;
+    char* nameP;
+    char name[256];
+    unsigned char length, type;
+
+    printf("%s\n", desc);
+    xName = wolfSSL_X509_get_issuer_name(cert);
+    nameP = wolfSSL_X509_NAME_oneline(xName, name, (int)sizeof(name));
+    printf("  %12s: %s\n", "issuer name", nameP);
+
+    xName = wolfSSL_X509_get_subject_name(cert);
+    nameP = wolfSSL_X509_NAME_oneline(xName, name, (int)sizeof(name));
+    printf("  %12s: %s\n", "subject name", nameP);
+
+    do {
+        nameP = wolfSSL_X509_get_next_altname(cert);
+        if (nameP != NULL) {
+            printf("%12s: %s\n", "altname", nameP);
+        }
+    } while (nameP != NULL);
+
+    xTime = wolfSSL_X509_notBefore(cert);
+    dumpTime("notBefore", xTime);
+
+    xTime = wolfSSL_X509_notAfter(cert);
+    dumpTime("notAfter", xTime);
+
+    return 0;
+}
+
+
 int main(int argc, char* argv[])
 {
+    WOLFSSL_X509* cert;
     int port = 11111;
 
     if (argc > 1) {
@@ -178,6 +231,11 @@ int main(int argc, char* argv[])
     }
 
     printf("hello\n");
+
+    cert = wolfSSL_X509_load_certificate_file("./certs/server-cert.pem",
+            SSL_FILETYPE_PEM);
+    dumpCert("wolfSSL_X509_load_certificate_file()", cert);
+    wolfSSL_X509_free(cert);
 
     WOLFSSL_CTX* ctx = wolfSSL_CTX_new(wolfTLSv1_2_client_method());
     if (ctx) printf("got a good ctx\n");
@@ -203,6 +261,10 @@ int main(int argc, char* argv[])
         printf("err = %d\n", err);
 
     }
+
+    cert = wolfSSL_get_peer_certificate(ssl);
+    dumpCert("wolfSSL_get_peer_certificate()", cert);
+    wolfSSL_X509_free(cert);
 
     ret = wolfSSL_write(ssl, "hi there", 9);
     printf("write ret = %d\n", ret);

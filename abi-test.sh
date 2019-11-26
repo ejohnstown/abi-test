@@ -37,7 +37,7 @@ cp "${_certs[@]}" "$_pwd/certs"
 
 git checkout "$_reftag" >/dev/null 2>&1
 ./autogen.sh >/dev/null 2>&1
-./configure --disable-dependency-tracking --disable-static --prefix="$_pwd/local" >/dev/null
+./configure --disable-dependency-tracking --disable-static --enable-opensslextra --prefix="$_pwd/local" >/dev/null
 make install >/dev/null
 popd
 
@@ -91,7 +91,7 @@ pushd wolfssl
 rm -f support/wolfssl.pc
 git checkout master
 ./autogen.sh >/dev/null 2>&1
-./configure --disable-dependency-tracking --disable-static --prefix="$_pwd/local" >/dev/null
+./configure --disable-dependency-tracking --disable-static --enable-opensslall --prefix="$_pwd/local" >/dev/null
 make install >/dev/null
 popd
 
