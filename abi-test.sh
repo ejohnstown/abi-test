@@ -1,7 +1,13 @@
 #!/bin/bash
 
 _pwd="$PWD"
-_reftag="v3.10.0-stable"
+#_reftag="v3.10.0-stable"
+#_repo="https://github.com/wolfSSL/wolfssl.git"
+#_curtag="master"
+_repo="https://github.com/ejohnstown/wolfssl.git"
+_reftag="abi-new-test"
+_mastertag="master"
+
 _certs=(
     certs/ca-cert.pem
     certs/client-cert.pem
@@ -14,8 +20,8 @@ _certs=(
 
 if test ! -d wolfssl
 then
-    echo "Fetching wolfssl from GitHub"
-    git clone https://github.com/wolfSSL/wolfssl.git
+    echo "Fetching $_repo from GitHub"
+    git clone "$_repo" wolfssl
 fi
 
 echo "Cleanup from previous run"
@@ -24,9 +30,9 @@ mkdir -p local certs
 
 pushd wolfssl
 
-git checkout master
+git checkout "$_mastertag"
 git fetch origin
-git reset --hard origin/master
+git reset --hard origin/"$_mastertag"
 
 echo "Building the server tool"
 ./autogen.sh >/dev/null 2>&1
@@ -67,6 +73,7 @@ do
 	_counter=$((_counter+1))
 done
 
+ls "$_pwd/local/lib"
 echo "case 1: built and run with old library"
 if ! ./client "$(cat abi-ready)"
 then
@@ -89,7 +96,7 @@ fi
 echo "Installing current wolfSSL"
 pushd wolfssl
 rm -f support/wolfssl.pc
-git checkout master
+git checkout "$_mastertag"
 ./autogen.sh >/dev/null 2>&1
 ./configure --disable-dependency-tracking --disable-static --enable-opensslall --prefix="$_pwd/local" >/dev/null
 make install >/dev/null
@@ -117,6 +124,5 @@ then
 fi
 
 kill $_pid >/dev/null 2>&1
-rm -f abi-ready
 
 echo "end"
