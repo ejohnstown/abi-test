@@ -220,7 +220,7 @@ static int dumpCert(const char* desc, WOLFSSL_X509* cert)
 }
 
 
-int testKey(void)
+int testEccKey(void)
 {
     WC_RNG* rng = NULL;
     ecc_key* ecc = NULL;
@@ -274,6 +274,39 @@ doExit:
 }
 
 
+int testEccSignCb(WOLFSSL* ssl,
+       const unsigned char* in, unsigned int inSz,
+       unsigned char* out, word32* outSz,
+       const unsigned char* keyDer, unsigned int keySz,
+       void* ctx)
+{
+    int ret = 0;
+    ecc_key* ecc = NULL;
+
+    (void)ctx;
+    printf("EccSignCb\n");
+
+    ret = wc_ecc_init_ex(ecc, NULL, INVALID_DEVID);
+    if (ret != 0)
+        printf("Couldn't initialize ECC key. (%d)\n", ret);
+    else
+    ret = wc_ecc_import_x963(keyDer, keySz, ecc);
+
+    if (ret != 0)
+        printf("Couldn't import ECC key. (%d)\n", ret);
+    else
+        ret = wc_ecc_sign_hash(in, inSz, out, outSz, wolfSSL_GetRNG(ssl), ecc);
+
+    if (ret != 0)
+        printf("Couldn't sign the hash. (%d)\n", ret);
+
+    wc_ecc_free(ecc);
+    wc_ecc_key_free(ecc);
+
+    return ret;
+}
+
+
 int main(int argc, char* argv[])
 {
     WOLFSSL_X509* cert;
@@ -299,7 +332,7 @@ int main(int argc, char* argv[])
     dumpCert("wolfSSL_X509_load_certificate_file()", cert);
     wolfSSL_X509_free(cert);
 
-    testKey();
+    testEccKey();
 
     WOLFSSL_CTX* ctx = wolfSSL_CTX_new(wolfTLSv1_2_client_method());
     if (ctx) printf("got a good ctx\n");
@@ -307,8 +340,25 @@ int main(int argc, char* argv[])
     ret = wolfSSL_CTX_load_verify_locations(ctx, "./certs/ca-cert.pem", 0);
     printf("load verify ret = %d\n", ret);
 
+    ret = wolfSSL_CTX_SetDevId(ctx, 42);
+    if (ret != SSL_SUCCESS)
+        printf("couldn't set CTX's device ID\n");
+    if (wolfSSL_CTX_GetDevId(ctx, NULL) != 42)
+        printf("couldn't verify the CTX's new device ID\n");
+
+    wolfSSL_CTX_SetEccSignCb(ctx, testEccSignCb);
+
     WOLFSSL* ssl = wolfSSL_new(ctx);
-    if (ssl) printf("got a good ssl\n");
+    if (ssl)
+        printf("got a good ssl\n");
+
+    if (wolfSSL_CTX_GetDevId(NULL, ssl) != 42)
+        printf("couldn't verify the new session's device ID\n");
+    ret = wolfSSL_SetDevId(ssl, INVALID_DEVID);
+    if (ret != SSL_SUCCESS)
+        printf("couldn't set session's device ID\n");
+    if (wolfSSL_CTX_GetDevId(NULL, ssl) != INVALID_DEVID)
+        printf("couldn't verify the session's new device ID\n");
 
     SOCKET_T sfd;
 

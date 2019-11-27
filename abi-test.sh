@@ -17,6 +17,21 @@ _certs=(
     certs/server-key.pem
 )
 
+_confcli=(
+    --disable-dependency-tracking
+    --disable-static
+    --enable-pkcallbacks
+    --enable-opensslextra
+    --prefix="$_pwd/local"
+)
+_confsrv=(
+    --disable-dependency-tracking
+    --disable-shared
+)
+
+echo "client: ./configure ${_confcli[@]}"
+echo "server: ./configure ${_confsrv[@]}"
+
 
 if test ! -d wolfssl
 then
@@ -36,14 +51,15 @@ git reset --hard origin/"$_mastertag"
 
 echo "Building the server tool"
 ./autogen.sh >/dev/null 2>&1
-./configure --disable-dependency-tracking --disable-shared >/dev/null
+./configure "${_confsrv[@]}" >/dev/null
 make examples/server/server >/dev/null
 cp examples/server/server "$_pwd"
 cp "${_certs[@]}" "$_pwd/certs"
 
 git checkout "$_reftag" >/dev/null 2>&1
+git reset --hard origin/"$_reftag"
 ./autogen.sh >/dev/null 2>&1
-./configure --disable-dependency-tracking --disable-static --enable-opensslextra --prefix="$_pwd/local" >/dev/null
+./configure "${_confcli[@]}" >/dev/null
 make install >/dev/null
 popd
 
@@ -98,7 +114,7 @@ pushd wolfssl
 rm -f support/wolfssl.pc
 git checkout "$_mastertag"
 ./autogen.sh >/dev/null 2>&1
-./configure --disable-dependency-tracking --disable-static --enable-opensslall --prefix="$_pwd/local" >/dev/null
+./configure "${_confcli[@]}" >/dev/null
 make install >/dev/null
 popd
 
