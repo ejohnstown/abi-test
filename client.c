@@ -4,6 +4,8 @@
 
 #include <wolfssl/options.h>
 #include <wolfssl/ssl.h>
+#include <wolfssl/wolfcrypt/random.h>
+#include <wolfssl/wolfcrypt/ecc.h>
 
 #include <string.h>
 #include <sys/types.h>
@@ -22,6 +24,7 @@
 typedef struct sockaddr_in  SOCKADDR_IN_T;
 #define SOCKET_T int
 #define AF_INET_V    AF_INET
+
 
 static inline void
 err_sys(const char* msg)
@@ -217,10 +220,65 @@ static int dumpCert(const char* desc, WOLFSSL_X509* cert)
 }
 
 
+int testKey(void)
+{
+    WC_RNG* rng = NULL;
+    ecc_key* ecc = NULL;
+    byte nonce[32];
+    byte digest[32];
+    byte sig[72];
+    int ret = 0;
+    word32 digestSz = sizeof(digest), sigSz = sizeof(sig);
+
+    memset(nonce, 0, sizeof(nonce));
+
+    rng = wc_rng_new(nonce, (word32)sizeof(nonce), NULL);
+    if (rng == NULL) {
+        printf("Couldn't get a random number generator.\n");
+        goto doExit;
+    }
+
+    wc_RNG_GenerateBlock(rng, digest, digestSz);
+
+    ecc = wc_ecc_key_new(NULL);
+    if (ecc == NULL) {
+        printf("Couldn't allocate ECC key.\n");
+        goto doExit;
+    }
+
+    ret = wc_ecc_init_ex(ecc, NULL, INVALID_DEVID);
+    if (ret != 0) {
+        printf("Couldn't initialize ECC key. (%d)\n", ret);
+        goto doExit;
+    }
+    ret = wc_ecc_make_key_ex(rng, 32, ecc, ECC_SECP256R1);
+    if (ret != 0) {
+        printf("Couldn't generate ECC key. (%d)\n", ret);
+        goto doExit;
+    }
+    ret = wc_ecc_sign_hash(digest, digestSz, sig, &sigSz, rng, ecc);
+    if (ret != 0) {
+        printf("Couldn't sign hash. (%d)\n", ret);
+        goto doExit;
+    }
+
+doExit:
+    if (ecc != NULL) {
+        wc_ecc_free(ecc);
+        wc_ecc_key_free(ecc);
+    }
+    if (rng != NULL)
+        wc_rng_free(rng);
+
+    return ret;
+}
+
+
 int main(int argc, char* argv[])
 {
     WOLFSSL_X509* cert;
     int port = 11111;
+    int ret;
 
     if (argc > 1) {
         port = atoi(argv[1]);
@@ -232,15 +290,20 @@ int main(int argc, char* argv[])
 
     printf("hello\n");
 
+    ret = wolfSSL_Init();
+    if (ret != SSL_SUCCESS)
+        printf("init = %d\n", ret);
+
     cert = wolfSSL_X509_load_certificate_file("./certs/server-cert.pem",
             SSL_FILETYPE_PEM);
     dumpCert("wolfSSL_X509_load_certificate_file()", cert);
     wolfSSL_X509_free(cert);
 
+    testKey();
+
     WOLFSSL_CTX* ctx = wolfSSL_CTX_new(wolfTLSv1_2_client_method());
     if (ctx) printf("got a good ctx\n");
 
-    int ret;
     ret = wolfSSL_CTX_load_verify_locations(ctx, "./certs/ca-cert.pem", 0);
     printf("load verify ret = %d\n", ret);
 
@@ -259,7 +322,6 @@ int main(int argc, char* argv[])
     if (ret < 0) {
         int err = wolfSSL_get_error(ssl, 0);
         printf("err = %d\n", err);
-
     }
 
     cert = wolfSSL_get_peer_certificate(ssl);
