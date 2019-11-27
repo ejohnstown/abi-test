@@ -15,6 +15,7 @@ _certs=(
     certs/ntru-key.raw
     certs/server-cert.pem
     certs/server-key.pem
+    certs/test/server-localhost.pem
 )
 
 _confcli=(
@@ -77,8 +78,8 @@ case "$(ls $_pwd/local/lib)" in
     ;;
 esac
 
-gcc -o client client.c -L./local/lib -I./local/include -lwolfssl
-./server -d -i -p 0 -R abi-ready &
+gcc -o client client.c -L./local/lib -I./local/include -lwolfssl -lm
+./server -c ./certs/server-localhost.pem -d -i -p 0 -R abi-ready &
 _pid=$!
 
 _counter=0

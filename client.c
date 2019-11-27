@@ -327,7 +327,7 @@ int main(int argc, char* argv[])
     if (ret != SSL_SUCCESS)
         printf("init = %d\n", ret);
 
-    cert = wolfSSL_X509_load_certificate_file("./certs/server-cert.pem",
+    cert = wolfSSL_X509_load_certificate_file("./certs/server-localhost.pem",
             SSL_FILETYPE_PEM);
     dumpCert("wolfSSL_X509_load_certificate_file()", cert);
     wolfSSL_X509_free(cert);
@@ -337,7 +337,8 @@ int main(int argc, char* argv[])
     WOLFSSL_CTX* ctx = wolfSSL_CTX_new(wolfTLSv1_2_client_method());
     if (ctx) printf("got a good ctx\n");
 
-    ret = wolfSSL_CTX_load_verify_locations(ctx, "./certs/ca-cert.pem", 0);
+    ret = wolfSSL_CTX_load_verify_locations(ctx,
+            "./certs/server-localhost.pem", 0);
     printf("load verify ret = %d\n", ret);
 
     ret = wolfSSL_CTX_SetDevId(ctx, 42);
@@ -365,6 +366,9 @@ int main(int argc, char* argv[])
     tcp_connect(&sfd, "localhost", port);
 
     wolfSSL_set_fd(ssl, sfd);
+    ret = wolfSSL_check_domain_name(ssl, "localhost");
+    if (ret != SSL_SUCCESS)
+        printf("Couldn't set check domain name\n");
 
     ret = wolfSSL_connect(ssl);
 
