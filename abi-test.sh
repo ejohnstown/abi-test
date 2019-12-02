@@ -24,6 +24,7 @@ _confcli=(
     --enable-alpn
     --enable-pkcallbacks
     --enable-opensslextra
+    --enable-sessioncerts
     --enable-sni
     --enable-tls13
     --prefix="$_pwd/local"

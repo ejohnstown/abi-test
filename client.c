@@ -365,6 +365,8 @@ int test_connection(int ver, int port)
         printf("couldn't verify the CTX's new device ID\n");
 
     wolfSSL_CTX_SetEccSignCb(ctx, test_ecc_sign_cb);
+    ret = wolfSSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_NO_AUTO_CLEAR);
+    printf("CTX_set_session_cache_mode ret = %d\n", ret);
 
     WOLFSSL* ssl = wolfSSL_new(ctx);
     if (ssl)
@@ -380,6 +382,8 @@ int test_connection(int ver, int port)
     sni = "badname";
     ret = wolfSSL_CTX_UseSNI(ctx, 0, sni, (word32)strlen(sni));
     printf("CTX_UseSNI ret = %d\n", ret);
+    ret = wolfSSL_CTX_set_timeout(ctx, 1000);
+    printf("CTX_set_timeout ret = %d\n", ret);
 
     SOCKET_T sfd;
 
@@ -397,6 +401,8 @@ int test_connection(int ver, int port)
     sni = "localhost";
     ret = wolfSSL_UseSNI(ssl, 0, sni, (word32)strlen(sni));
     printf("UseSNI ret = %d\n", ret);
+    ret = wolfSSL_set_timeout(ssl, 300);
+    printf("set_timeout ret = %d\n", ret);
 
     ret = wolfSSL_connect(ssl);
 
@@ -428,6 +434,19 @@ int test_connection(int ver, int port)
     printf("bye\n");
 
     wolfSSL_shutdown(ssl);
+
+    WOLFSSL_SESSION* session = wolfSSL_get_session(ssl);
+    printf("get_session = %p\n", session);
+
+    const byte* sessionId = wolfSSL_get_sessionID(session);
+    printf("sessionID = %p\n", sessionId);
+
+    ret = wolfSSL_set_session(ssl, session);
+    printf("set_session ret = %d\n", ret);
+
+    wolfSSL_flush_sessions(ctx, 0);
+
+    close(sfd);
     wolfSSL_free(ssl);
     wolfSSL_CTX_free(ctx);
 
