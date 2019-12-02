@@ -24,10 +24,12 @@ _confcli=(
     --enable-pkcallbacks
     --enable-opensslextra
     --prefix="$_pwd/local"
+    --enable-tls13
 )
 _confsrv=(
     --disable-dependency-tracking
     --disable-shared
+    --enable-tls13
 )
 
 echo "client: ./configure ${_confcli[@]}"
@@ -79,7 +81,7 @@ case "$(ls $_pwd/local/lib)" in
 esac
 
 gcc -o client client.c -L./local/lib -I./local/include -lwolfssl -lm
-./server -c ./certs/server-localhost.pem -d -i -p 0 -R abi-ready &
+./server -c ./certs/server-localhost.pem -v d -d -i -p 0 -R abi-ready &
 _pid=$!
 
 _counter=0
@@ -90,7 +92,6 @@ do
 	_counter=$((_counter+1))
 done
 
-ls "$_pwd/local/lib"
 echo "case 1: built and run with old library"
 if ! ./client "$(cat abi-ready)"
 then
