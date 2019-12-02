@@ -21,14 +21,18 @@ _certs=(
 _confcli=(
     --disable-dependency-tracking
     --disable-static
+    --enable-alpn
     --enable-pkcallbacks
     --enable-opensslextra
-    --prefix="$_pwd/local"
+    --enable-sni
     --enable-tls13
+    --prefix="$_pwd/local"
 )
 _confsrv=(
     --disable-dependency-tracking
     --disable-shared
+    --enable-alpn
+    --enable-sni
     --enable-tls13
 )
 

@@ -34,8 +34,9 @@ err_sys(const char* msg)
     exit(EXIT_FAILURE);
 }
 
-static inline void build_addr(SOCKADDR_IN_T* addr, const char* peer,
-                              unsigned short port)
+
+static inline
+void build_addr(SOCKADDR_IN_T* addr, const char* peer, unsigned short port)
 {
     int useLookup = 0;
     (void)useLookup;
@@ -145,7 +146,9 @@ static inline void build_addr(SOCKADDR_IN_T* addr, const char* peer,
 #endif
 }
 
-static inline void tcp_socket(SOCKET_T* sockfd)
+
+static inline
+void tcp_socket(SOCKET_T* sockfd)
 {
     *sockfd = socket(AF_INET_V, SOCK_STREAM, IPPROTO_TCP);
 
@@ -156,8 +159,9 @@ static inline void tcp_socket(SOCKET_T* sockfd)
     signal(SIGPIPE, SIG_IGN);
 }
 
-static inline void tcp_connect(SOCKET_T* sockfd, const char* ip,
-                               unsigned short port)
+
+static inline
+void tcp_connect(SOCKET_T* sockfd, const char* ip, unsigned short port)
 {
     SOCKADDR_IN_T addr;
     build_addr(&addr, ip, port);
@@ -168,7 +172,8 @@ static inline void tcp_connect(SOCKET_T* sockfd, const char* ip,
 }
 
 
-static int dumpTime(const char* desc, const unsigned char* time)
+static
+int print_time(const char* desc, const unsigned char* time)
 {
     int i, length;
     unsigned char flatTime[64];
@@ -186,7 +191,8 @@ static int dumpTime(const char* desc, const unsigned char* time)
 }
 
 
-static int dumpCert(const char* desc, WOLFSSL_X509* cert)
+static
+int print_cert(const char* desc, WOLFSSL_X509* cert)
 {
     WOLFSSL_X509_NAME* xName;
     const unsigned char* xTime;
@@ -211,16 +217,30 @@ static int dumpCert(const char* desc, WOLFSSL_X509* cert)
     } while (nameP != NULL);
 
     xTime = wolfSSL_X509_notBefore(cert);
-    dumpTime("notBefore", xTime);
+    print_time("notBefore", xTime);
 
     xTime = wolfSSL_X509_notAfter(cert);
-    dumpTime("notAfter", xTime);
+    print_time("notAfter", xTime);
 
     return 0;
 }
 
 
-int testEccKey(void)
+static
+int test_cert_file(void)
+{
+    WOLFSSL_X509* cert;
+    cert = wolfSSL_X509_load_certificate_file("./certs/server-localhost.pem",
+            SSL_FILETYPE_PEM);
+    print_cert("wolfSSL_X509_load_certificate_file()", cert);
+    wolfSSL_X509_free(cert);
+
+    return 0;
+}
+
+
+static
+int test_ecc_key(void)
 {
     WC_RNG* rng = NULL;
     ecc_key* ecc = NULL;
@@ -274,7 +294,8 @@ doExit:
 }
 
 
-int testEccSignCb(WOLFSSL* ssl,
+static
+int test_ecc_sign_cb(WOLFSSL* ssl,
        const unsigned char* in, unsigned int inSz,
        unsigned char* out, word32* outSz,
        const unsigned char* keyDer, unsigned int keySz,
@@ -307,9 +328,115 @@ int testEccSignCb(WOLFSSL* ssl,
 }
 
 
+static
+int test_connection(int ver, int port)
+{
+    WOLFSSL_METHOD* method;
+    const char* sni;
+    int ret;
+
+    printf("test_connection(%d, %d)\n", ver, port);
+    switch (ver) {
+        case 1:
+            method = wolfTLSv1_1_client_method();
+            break;
+        case 3:
+            method = wolfTLSv1_3_client_method();
+            break;
+        default:
+            ver = 2;
+            method = wolfTLSv1_2_client_method();
+    }
+
+    WOLFSSL_CTX* ctx = wolfSSL_CTX_new(method);
+    if (ctx) printf("got a good ctx\n");
+
+    ret = wolfSSL_CTX_SetMinVersion(ctx, ver);
+    if (ret != SSL_SUCCESS)
+        printf("Couldn't set the minimum TLS version on context.\n");
+    ret = wolfSSL_CTX_load_verify_locations(ctx,
+            "./certs/server-localhost.pem", 0);
+    printf("load verify ret = %d\n", ret);
+
+    ret = wolfSSL_CTX_SetDevId(ctx, 42);
+    if (ret != SSL_SUCCESS)
+        printf("couldn't set CTX's device ID\n");
+    if (wolfSSL_CTX_GetDevId(ctx, NULL) != 42)
+        printf("couldn't verify the CTX's new device ID\n");
+
+    wolfSSL_CTX_SetEccSignCb(ctx, test_ecc_sign_cb);
+
+    WOLFSSL* ssl = wolfSSL_new(ctx);
+    if (ssl)
+        printf("got a good ssl\n");
+
+    if (wolfSSL_CTX_GetDevId(NULL, ssl) != 42)
+        printf("couldn't verify the new session's device ID\n");
+    ret = wolfSSL_SetDevId(ssl, INVALID_DEVID);
+    if (ret != SSL_SUCCESS)
+        printf("couldn't set session's device ID\n");
+    if (wolfSSL_CTX_GetDevId(NULL, ssl) != INVALID_DEVID)
+        printf("couldn't verify the session's new device ID\n");
+    sni = "badname";
+    ret = wolfSSL_CTX_UseSNI(ctx, 0, sni, (word32)strlen(sni));
+    printf("CTX_UseSNI ret = %d\n", ret);
+
+    SOCKET_T sfd;
+
+    tcp_connect(&sfd, "localhost", port);
+
+    wolfSSL_set_fd(ssl, sfd);
+    ret = wolfSSL_check_domain_name(ssl, "localhost");
+    if (ret != SSL_SUCCESS)
+        printf("Couldn't set check domain name\n");
+
+    char alpnList[] = "C:";
+    ret = wolfSSL_UseALPN(ssl, alpnList, (word32)strlen(alpnList),
+            WOLFSSL_ALPN_CONTINUE_ON_MISMATCH);
+    printf("UseALPN ret = %d\n", ret);
+    sni = "localhost";
+    ret = wolfSSL_UseSNI(ssl, 0, sni, (word32)strlen(sni));
+    printf("UseSNI ret = %d\n", ret);
+
+    ret = wolfSSL_connect(ssl);
+
+    printf("ssl connect ret = %d\n", ret);
+    if (ret < 0) {
+        int err = wolfSSL_get_error(ssl, 0);
+        printf("err = %d\n", err);
+    }
+
+    WOLFSSL_X509* cert = wolfSSL_get_peer_certificate(ssl);
+    if (cert == NULL)
+        printf("the peer certificate is missing\n");
+    else {
+        print_cert("wolfSSL_get_peer_certificate()", cert);
+        wolfSSL_X509_free(cert);
+    }
+
+    ret = wolfSSL_write(ssl, "hi there", 9);
+    printf("write ret = %d\n", ret);
+    ret = wolfSSL_pending(ssl);
+    printf("pending ret = %d\n", ret);
+
+    char buffer[128];
+    memset(buffer, 0, sizeof(buffer));
+    ret = wolfSSL_read(ssl, buffer, sizeof(buffer));
+    printf("read ret = %d\n", ret);
+    printf("read %s\n", buffer);
+
+    printf("bye\n");
+
+    wolfSSL_shutdown(ssl);
+    wolfSSL_free(ssl);
+    wolfSSL_CTX_free(ctx);
+
+    return 0;
+}
+
+
 int main(int argc, char* argv[])
 {
-    WOLFSSL_X509* cert;
     int port = 11111;
     int ret;
 
@@ -327,80 +454,14 @@ int main(int argc, char* argv[])
     if (ret != SSL_SUCCESS)
         printf("init = %d\n", ret);
 
-    cert = wolfSSL_X509_load_certificate_file("./certs/server-localhost.pem",
-            SSL_FILETYPE_PEM);
-    dumpCert("wolfSSL_X509_load_certificate_file()", cert);
-    wolfSSL_X509_free(cert);
+    test_cert_file();
+    test_ecc_key();
 
-    testEccKey();
+    test_connection(1, port);
+    test_connection(2, port);
+    test_connection(3, port);
 
-    WOLFSSL_CTX* ctx = wolfSSL_CTX_new(wolfTLSv1_2_client_method());
-    if (ctx) printf("got a good ctx\n");
-
-    ret = wolfSSL_CTX_load_verify_locations(ctx,
-            "./certs/server-localhost.pem", 0);
-    printf("load verify ret = %d\n", ret);
-
-    ret = wolfSSL_CTX_SetDevId(ctx, 42);
-    if (ret != SSL_SUCCESS)
-        printf("couldn't set CTX's device ID\n");
-    if (wolfSSL_CTX_GetDevId(ctx, NULL) != 42)
-        printf("couldn't verify the CTX's new device ID\n");
-
-    wolfSSL_CTX_SetEccSignCb(ctx, testEccSignCb);
-
-    WOLFSSL* ssl = wolfSSL_new(ctx);
-    if (ssl)
-        printf("got a good ssl\n");
-
-    if (wolfSSL_CTX_GetDevId(NULL, ssl) != 42)
-        printf("couldn't verify the new session's device ID\n");
-    ret = wolfSSL_SetDevId(ssl, INVALID_DEVID);
-    if (ret != SSL_SUCCESS)
-        printf("couldn't set session's device ID\n");
-    if (wolfSSL_CTX_GetDevId(NULL, ssl) != INVALID_DEVID)
-        printf("couldn't verify the session's new device ID\n");
-
-    SOCKET_T sfd;
-
-    tcp_connect(&sfd, "localhost", port);
-
-    wolfSSL_set_fd(ssl, sfd);
-    ret = wolfSSL_check_domain_name(ssl, "localhost");
-    if (ret != SSL_SUCCESS)
-        printf("Couldn't set check domain name\n");
-
-    ret = wolfSSL_connect(ssl);
-
-    printf("ssl connect ret = %d\n", ret);
-    if (ret < 0) {
-        int err = wolfSSL_get_error(ssl, 0);
-        printf("err = %d\n", err);
-    }
-
-    cert = wolfSSL_get_peer_certificate(ssl);
-    if (cert == NULL)
-        printf("the peer certificate is missing\n");
-    else {
-        dumpCert("wolfSSL_get_peer_certificate()", cert);
-        wolfSSL_X509_free(cert);
-    }
-
-    ret = wolfSSL_write(ssl, "hi there", 9);
-    printf("write ret = %d\n", ret);
-
-    char buffer[128];
-    memset(buffer, 0, sizeof(buffer));
-    ret = wolfSSL_read(ssl, buffer, sizeof(buffer));
-    printf("read ret = %d\n", ret);
-    printf("read %s\n", buffer);
-
-    printf("bye\n");
-
-    wolfSSL_shutdown(ssl);
-    wolfSSL_free(ssl);
-    wolfSSL_CTX_free(ctx);
-
+    wolfSSL_Cleanup();
     printf("bye\n");
 
     return 0;
