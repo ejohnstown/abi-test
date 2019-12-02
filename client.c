@@ -379,8 +379,12 @@ int main(int argc, char* argv[])
     }
 
     cert = wolfSSL_get_peer_certificate(ssl);
-    dumpCert("wolfSSL_get_peer_certificate()", cert);
-    wolfSSL_X509_free(cert);
+    if (cert == NULL)
+        printf("the peer certificate is missing\n");
+    else {
+        dumpCert("wolfSSL_get_peer_certificate()", cert);
+        wolfSSL_X509_free(cert);
+    }
 
     ret = wolfSSL_write(ssl, "hi there", 9);
     printf("write ret = %d\n", ret);
