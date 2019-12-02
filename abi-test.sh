@@ -11,9 +11,9 @@ _mastertag="master"
 _certs=(
     certs/ca-cert.pem
     certs/client-cert.pem
+    certs/client-key.pem
     certs/dh2048.pem
     certs/ntru-key.raw
-    certs/server-cert.pem
     certs/server-key.pem
     certs/test/server-localhost.pem
 )
@@ -97,6 +97,7 @@ do
 	_counter=$((_counter+1))
 done
 
+echo "======================================================================="
 echo "case 1: built and run with old library"
 if ! ./client "$(cat abi-ready)"
 then
@@ -104,10 +105,12 @@ then
 	kill $_pid
     exit 1
 fi
+echo "======================================================================="
 
 echo "Vaporize local install directory"
 rm -rf local
 
+echo "======================================================================="
 echo "case 2: no library"
 if ./client "$(cat abi-ready)"
 then
@@ -115,6 +118,7 @@ then
 	kill $_pid
     exit 1
 fi
+echo "======================================================================="
 
 echo "Installing current wolfSSL"
 pushd wolfssl
@@ -125,6 +129,7 @@ git checkout "$_mastertag"
 make install >/dev/null
 popd
 
+echo "======================================================================="
 echo "case 3: built with old library, running with new"
 if ./client "$(cat abi-ready)"
 then
@@ -132,12 +137,14 @@ then
 	kill $_pid
     exit 1
 fi
+echo "======================================================================="
 
 echo "linking old library to current library"
 pushd local/lib
 ln -sf "$_ln" "$_oln"
 popd
 
+echo "======================================================================="
 echo "case 4: built with old library, running with new linked as old"
 if ! ./client "$(cat abi-ready)"
 then
@@ -145,6 +152,7 @@ then
 	kill $_pid
     exit 1
 fi
+echo "======================================================================="
 
 kill $_pid >/dev/null 2>&1
 

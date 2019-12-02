@@ -26,6 +26,11 @@ typedef struct sockaddr_in  SOCKADDR_IN_T;
 #define AF_INET_V    AF_INET
 
 
+const char* caCert = "./certs/server-localhost.pem";
+const char* clientCert = "./certs/client-cert.pem";
+const char* clientKey = "./certs/client-key.pem";
+
+
 static inline void
 err_sys(const char* msg)
 {
@@ -230,8 +235,7 @@ static
 int test_cert_file(void)
 {
     WOLFSSL_X509* cert;
-    cert = wolfSSL_X509_load_certificate_file("./certs/server-localhost.pem",
-            SSL_FILETYPE_PEM);
+    cert = wolfSSL_X509_load_certificate_file(caCert, SSL_FILETYPE_PEM);
     print_cert("wolfSSL_X509_load_certificate_file()", cert);
     wolfSSL_X509_free(cert);
 
@@ -454,6 +458,35 @@ int test_connection(int ver, int port)
 }
 
 
+static int
+test_cert_use(void)
+{
+    WOLFSSL_CTX* ctx = wolfSSL_CTX_new(wolfTLSv1_2_client_method());
+    int ret;
+
+    ret = wolfSSL_CTX_use_certificate_chain_file(ctx, clientCert);
+    printf("CTX_use_certificate_chain_file ret = %d\n", ret);
+    ret = wolfSSL_CTX_use_certificate_file(ctx, clientCert, SSL_FILETYPE_PEM);
+    printf("CTX_use_certificate_file ret = %d\n", ret);
+    ret = wolfSSL_CTX_use_PrivateKey_file(ctx, clientKey, SSL_FILETYPE_PEM);
+    printf("CTX_use_PrivateKey_file ret = %d\n", ret);
+
+    WOLFSSL* ssl = wolfSSL_new(ctx);
+
+    ret = wolfSSL_use_certificate_chain_file(ssl, clientCert);
+    printf("use_certificate_chain_file ret = %d\n", ret);
+    ret = wolfSSL_use_certificate_file(ssl, clientCert, SSL_FILETYPE_PEM);
+    printf("use_certificate_file ret = %d\n", ret);
+    ret = wolfSSL_use_PrivateKey_file(ssl, clientKey, SSL_FILETYPE_PEM);
+    printf("use_PrivateKey_file ret = %d\n", ret);
+
+    wolfSSL_free(ssl);
+    wolfSSL_CTX_free(ctx);
+
+    return 0;
+}
+
+
 int main(int argc, char* argv[])
 {
     int port = 11111;
@@ -474,6 +507,7 @@ int main(int argc, char* argv[])
         printf("init = %d\n", ret);
 
     test_cert_file();
+    test_cert_use();
     test_ecc_key();
 
     test_connection(1, port);
