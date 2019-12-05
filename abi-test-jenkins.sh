@@ -1,3 +1,33 @@
+#!/bin/bash
+
+_pwd="$PWD"
+_reftag="abi-test"
+_mastertag="master"
+
+_confcli=(
+    --disable-dependency-tracking
+    --disable-examples
+    --disable-static
+    --enable-alpn
+    --enable-pkcallbacks
+    --enable-opensslextra
+    --enable-sessioncerts
+    --enable-sni
+    --enable-tls13
+    --prefix="$_pwd/local"
+)
+_confsrv=(
+    --disable-dependency-tracking
+    --disable-shared
+    --enable-alpn
+    --enable-sni
+    --enable-tls13
+)
+_servercert=./certs/test/server-localhost.pem
+
+# Save out the test client source code.
+(
+cat <<EOF
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -26,7 +56,7 @@ typedef struct sockaddr_in  SOCKADDR_IN_T;
 #define AF_INET_V    AF_INET
 
 
-const char* caCert = "./certs/test/server-localhost.pem";
+const char* caCert = "$_servercert";
 const char* clientCert = "./certs/client-cert.pem";
 const char* clientKey = "./certs/client-key.pem";
 
@@ -522,3 +552,110 @@ int main(int argc, char* argv[])
 
     return 0;
 }
+EOF
+) >client.c
+
+echo "client: ./configure ${_confcli[@]}"
+echo "server: ./configure ${_confsrv[@]}"
+
+echo "Building the server tool"
+./autogen.sh >/dev/null 2>&1
+./configure "${_confsrv[@]}"
+make examples/server/server
+cp examples/server/server "$_pwd"
+
+echo "Building the test library"
+git checkout "$_reftag"
+./autogen.sh >/dev/null 2>&1
+./configure "${_confcli[@]}"
+make
+make install
+
+export LD_LIBRARY_PATH="$_pwd/local/lib"
+
+echo "updating library link"
+case "$(ls $_pwd/local/lib)" in
+*.dylib*)
+    _oln="libwolfssl.3.dylib"
+    _ln="libwolfssl.dylib"
+    ;;
+*.so*)
+    _oln="libwolfssl.so.3"
+    _ln="libwolfssl.so"
+    ;;
+esac
+
+echo "Building the testing client"
+gcc -o client client.c -L./local/lib -I./local/include -lwolfssl -lm
+
+echo "Starting up the testing server"
+./server -c "$_servercert" -v d -d -i -p 0 -R abi-ready &
+_pid=$!
+
+_counter=0
+while test ! -s abi-ready -a "$_counter" -lt 20
+do
+	echo "waiting for ready file..."
+	sleep 0.1
+	_counter=$((_counter+1))
+done
+
+echo "======================================================================="
+echo "case 1: built and run with old library (expect success)"
+if ! ./client "$(cat abi-ready)"
+then
+    echo "case 1: Expected success, failed. Fail."
+	kill $_pid
+    exit 1
+fi
+echo "======================================================================="
+
+echo "Vaporize local install directory"
+rm -rf local
+
+echo "======================================================================="
+echo "case 2: no library (expect fail)"
+if ./client "$(cat abi-ready)"
+then
+    echo "case 2: Expected failure, passed. Fail."
+	kill $_pid
+    exit 1
+fi
+echo "======================================================================="
+
+echo "Installing wolfSSL commit under test"
+rm -f support/wolfssl.pc
+git checkout "$_mastertag"
+./autogen.sh >/dev/null 2>&1
+./configure "${_confcli[@]}" >/dev/null
+make install >/dev/null
+
+echo "======================================================================="
+echo "case 3: built with old library, running with new (expect fail)"
+if ./client "$(cat abi-ready)"
+then
+    echo "case 3: Expected failure, passed. Fail."
+	kill $_pid
+    exit 1
+fi
+echo "======================================================================="
+
+echo "linking old library to current library"
+pushd local/lib
+ln -sf "$_ln" "$_oln"
+popd
+
+echo "======================================================================="
+echo "case 4: built with old library, running with new linked as old (expect success)"
+if ! ./client "$(cat abi-ready)"
+then
+    echo "case 4: Expected success, failed. Fail."
+	kill $_pid
+    exit 1
+fi
+echo "======================================================================="
+
+kill $_pid >/dev/null 2>&1
+
+echo "end"
+
