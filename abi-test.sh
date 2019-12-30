@@ -1,8 +1,44 @@
 #!/bin/bash
 
-# The following shall be the contents of the client.c file.
+_pwd="$PWD"
+_reftag="v4.3.0-stable"
+_mastertag="master"
+_repo="https://github.com/wolfssl/wolfssl.git"
+
+_confcli=(
+    --disable-dependency-tracking
+    --disable-examples
+    --disable-static
+    --enable-alpn
+    --enable-pkcallbacks
+    --enable-opensslextra
+    --enable-sessioncerts
+    --enable-sni
+    --enable-tls13
+    --prefix="$_pwd/local"
+)
+_confsrv=(
+    --disable-dependency-tracking
+    --disable-shared
+    --enable-alpn
+    --enable-sni
+    --enable-tls13
+)
+_servercert=./certs/server-localhost.pem
+
+_certs=(
+    certs/ca-cert.pem
+    certs/client-cert.pem
+    certs/client-key.pem
+    certs/dh2048.pem
+    certs/ntru-key.raw
+    certs/server-key.pem
+    certs/test/server-localhost.pem
+)
+
+# Save out the test client source code.
 (
-cat <<'EOF'
+cat <<EOF
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -31,7 +67,7 @@ typedef struct sockaddr_in  SOCKADDR_IN_T;
 #define AF_INET_V    AF_INET
 
 
-const char* caCert = "./certs/server-localhost.pem";
+const char* caCert = "$_servercert";
 const char* clientCert = "./certs/client-cert.pem";
 const char* clientKey = "./certs/client-key.pem";
 
@@ -241,7 +277,9 @@ int test_cert_file(void)
 {
     WOLFSSL_X509* cert;
     cert = wolfSSL_X509_load_certificate_file(caCert, SSL_FILETYPE_PEM);
-    print_cert("wolfSSL_X509_load_certificate_file()", cert);
+    printf("wolfSSL_X509_load_certificate_file() = %p\n", cert);
+    if (cert != NULL)
+        print_cert("wolfSSL_X509_load_certificate_file()", cert);
     wolfSSL_X509_free(cert);
 
     return 0;
@@ -348,13 +386,15 @@ int test_connection(int ver, int port)
     switch (ver) {
         case 1:
             method = wolfTLSv1_1_client_method();
+            ver = /* TLSv1_1_MINOR */ 2;
             break;
         case 3:
             method = wolfTLSv1_3_client_method();
+            ver = /* TLSv1_3_MINOR */ 4;
             break;
         default:
-            ver = 2;
             method = wolfTLSv1_2_client_method();
+            ver = /* TLSv1_2_MINOR */ 3;
     }
 
     WOLFSSL_CTX* ctx = wolfSSL_CTX_new(method);
@@ -363,8 +403,7 @@ int test_connection(int ver, int port)
     ret = wolfSSL_CTX_SetMinVersion(ctx, ver);
     if (ret != SSL_SUCCESS)
         printf("Couldn't set the minimum TLS version on context.\n");
-    ret = wolfSSL_CTX_load_verify_locations(ctx,
-            "./certs/server-localhost.pem", 0);
+    ret = wolfSSL_CTX_load_verify_locations(ctx, caCert, 0);
     printf("load verify ret = %d\n", ret);
 
     ret = wolfSSL_CTX_SetDevId(ctx, 42);
@@ -527,43 +566,6 @@ int main(int argc, char* argv[])
 EOF
 ) >client.c
 
-_pwd="$PWD"
-#_reftag="v3.10.0-stable"
-#_repo="https://github.com/wolfSSL/wolfssl.git"
-#_curtag="master"
-_repo="https://github.com/ejohnstown/wolfssl.git"
-_reftag="abi-new-test"
-_mastertag="master"
-
-_certs=(
-    certs/ca-cert.pem
-    certs/client-cert.pem
-    certs/client-key.pem
-    certs/dh2048.pem
-    certs/ntru-key.raw
-    certs/server-key.pem
-    certs/test/server-localhost.pem
-)
-
-_confcli=(
-    --disable-dependency-tracking
-    --disable-static
-    --enable-alpn
-    --enable-pkcallbacks
-    --enable-opensslextra
-    --enable-sessioncerts
-    --enable-sni
-    --enable-tls13
-    --prefix="$_pwd/local"
-)
-_confsrv=(
-    --disable-dependency-tracking
-    --disable-shared
-    --enable-alpn
-    --enable-sni
-    --enable-tls13
-)
-
 echo "client: ./configure ${_confcli[@]}"
 echo "server: ./configure ${_confsrv[@]}"
 
@@ -583,18 +585,20 @@ git checkout "$_mastertag"
 git fetch origin
 git reset --hard origin/"$_mastertag"
 
-echo "Building the server tool"
-./autogen.sh >/dev/null 2>&1
-./configure "${_confsrv[@]}" >/dev/null
-make examples/server/server >/dev/null
+echo "Building the static current version server tool"
+./autogen.sh
+./configure "${_confsrv[@]}"
+make examples/server/server
 cp examples/server/server "$_pwd"
 cp "${_certs[@]}" "$_pwd/certs"
 
-git checkout "$_reftag" >/dev/null 2>&1
-git reset --hard origin/"$_reftag"
-./autogen.sh >/dev/null 2>&1
-./configure "${_confcli[@]}" >/dev/null
-make install >/dev/null
+echo "Building the reference library"
+git checkout "$_reftag"
+#git reset --hard origin/"$_reftag"
+sed -e '/^WOLFSSL_LIBRARY_VERSION/ s/.*/WOLFSSL_LIBRARY_VERSION=9:0:6/' -i.bak configure.ac
+./autogen.sh
+./configure "${_confcli[@]}"
+make install
 popd
 
 export LD_LIBRARY_PATH="$_pwd/local/lib"
@@ -611,8 +615,11 @@ case "$(ls $_pwd/local/lib)" in
     ;;
 esac
 
+echo "Building the testing client"
 gcc -o client client.c -L./local/lib -I./local/include -lwolfssl -lm
-./server -c ./certs/server-localhost.pem -v d -d -i -p 0 -R abi-ready &
+
+echo "Starting up the testing server"
+./server -c "$_servercert" -v d -d -i -p 0 -R abi-ready &
 _pid=$!
 
 _counter=0
@@ -624,7 +631,7 @@ do
 done
 
 echo "======================================================================="
-echo "case 1: built and run with old library"
+echo "case 1: built and run with old library (expect success)"
 if ! ./client "$(cat abi-ready)"
 then
     echo "case 1: Expected success, failed. Fail."
@@ -637,7 +644,7 @@ echo "Vaporize local install directory"
 rm -rf local
 
 echo "======================================================================="
-echo "case 2: no library"
+echo "case 2: no library (expect fail)"
 if ./client "$(cat abi-ready)"
 then
     echo "case 2: Expected failure, passed. Fail."
@@ -649,14 +656,14 @@ echo "======================================================================="
 echo "Installing current wolfSSL"
 pushd wolfssl
 rm -f support/wolfssl.pc
-git checkout "$_mastertag"
-./autogen.sh >/dev/null 2>&1
-./configure "${_confcli[@]}" >/dev/null
-make install >/dev/null
+git checkout --force "$_mastertag"
+./autogen.sh
+./configure "${_confcli[@]}"
+make install
 popd
 
 echo "======================================================================="
-echo "case 3: built with old library, running with new"
+echo "case 3: built with old library, running with new (expect fail)"
 if ./client "$(cat abi-ready)"
 then
     echo "case 3: Expected failure, passed. Fail."
@@ -665,13 +672,13 @@ then
 fi
 echo "======================================================================="
 
-echo "linking old library to current library"
+echo "linking reference library to current library"
 pushd local/lib
 ln -sf "$_ln" "$_oln"
 popd
 
 echo "======================================================================="
-echo "case 4: built with old library, running with new linked as old"
+echo "case 4: built with old library, running with new linked as old (expect success)"
 if ! ./client "$(cat abi-ready)"
 then
     echo "case 4: Expected success, failed. Fail."

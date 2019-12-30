@@ -1,8 +1,8 @@
 #!/bin/bash
 
 _pwd="$PWD"
-_reftag="abi-test"
-_mastertag="master"
+_reftag="v4.3.0-stable"
+_mastertag="$sha1"
 
 _confcli=(
     --disable-dependency-tracking
@@ -375,7 +375,7 @@ int test_connection(int ver, int port)
     switch (ver) {
         case 1:
             method = wolfTLSv1_1_client_method();
-            ver = /* TLSv1_1_MINOR*/ 2;
+            ver = /* TLSv1_1_MINOR */ 2;
             break;
         case 3:
             method = wolfTLSv1_3_client_method();
@@ -558,17 +558,17 @@ EOF
 echo "client: ./configure ${_confcli[@]}"
 echo "server: ./configure ${_confsrv[@]}"
 
-echo "Building the server tool"
-./autogen.sh >/dev/null 2>&1
+echo "Building the static current version server tool"
+./autogen.sh
 ./configure "${_confsrv[@]}"
 make examples/server/server
 cp examples/server/server "$_pwd"
 
-echo "Building the test library"
+echo "Building the reference library"
 git checkout "$_reftag"
-./autogen.sh >/dev/null 2>&1
+sed -e '/^WOLFSSL_LIBRARY_VERSION/ s/.*/WOLFSSL_LIBRARY_VERSION=9:0:6/' -i.bak configure.ac
+./autogen.sh
 ./configure "${_confcli[@]}"
-make
 make install
 
 export LD_LIBRARY_PATH="$_pwd/local/lib"
@@ -625,10 +625,10 @@ echo "======================================================================="
 
 echo "Installing wolfSSL commit under test"
 rm -f support/wolfssl.pc
-git checkout "$_mastertag"
-./autogen.sh >/dev/null 2>&1
-./configure "${_confcli[@]}" >/dev/null
-make install >/dev/null
+git checkout --force "$_mastertag"
+./autogen.sh
+./configure "${_confcli[@]}"
+make install
 
 echo "======================================================================="
 echo "case 3: built with old library, running with new (expect fail)"
@@ -640,7 +640,7 @@ then
 fi
 echo "======================================================================="
 
-echo "linking old library to current library"
+echo "linking reference library to current library"
 pushd local/lib
 ln -sf "$_ln" "$_oln"
 popd
@@ -658,4 +658,3 @@ echo "======================================================================="
 kill $_pid >/dev/null 2>&1
 
 echo "end"
-
