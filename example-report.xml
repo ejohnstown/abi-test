@@ -1,0 +1,667 @@
+<?xml version="1.0" encoding="utf-8"?>
+<reports>
+<report kind="binary" version="1.2">
+
+<test_info>
+  <library>wolfSSL</library>
+  <version1>
+    <number>v4.3.0-stable</number>
+    <arch>x86_64</arch>
+    <gcc>8.3.0</gcc>
+  </version1>
+  <version2>
+    <number>test-branch</number>
+    <arch>x86_64</arch>
+    <gcc>8.3.0</gcc>
+  </version2>
+</test_info>
+
+<test_results>
+  <headers>
+    <name>aes.h</name>
+    <name>arc4.h</name>
+    <name>asn.h</name>
+    <name>asn_public.h</name>
+    <name>bn.h</name>
+    <name>chacha.h</name>
+    <name>coding.h</name>
+    <name>conf.h</name>
+    <name>dh.h</name>
+    <name>dirent.h</name>
+    <name>dsa.h</name>
+    <name>ec.h</name>
+    <name>ecc.h</name>
+    <name>ecdsa.h</name>
+    <name>error-crypt.h</name>
+    <name>evp.h</name>
+    <name>FILE.h</name>
+    <name>hash.h</name>
+    <name>hmac.h</name>
+    <name>internal.h</name>
+    <name>logging.h</name>
+    <name>md5.h</name>
+    <name>memory.h</name>
+    <name>pkcs12.h</name>
+    <name>poly1305.h</name>
+    <name>pthreadtypes.h</name>
+    <name>pwdbased.h</name>
+    <name>random.h</name>
+    <name>rsa.h</name>
+    <name>sha.h</name>
+    <name>sha256.h</name>
+    <name>sha3.h</name>
+    <name>sha512.h</name>
+    <name>signature.h</name>
+    <name>ssl.h</name>
+    <name>stack.h</name>
+    <name>stat.h</name>
+    <name>stddef.h</name>
+    <name>struct_FILE.h</name>
+    <name>struct_iovec.h</name>
+    <name>struct_timespec.h</name>
+    <name>struct_tm.h</name>
+    <name>tfm.h</name>
+    <name>thread-shared-types.h</name>
+    <name>time_t.h</name>
+    <name>types.h</name>
+    <name>wc_encrypt.h</name>
+    <name>wc_port.h</name>
+    <name>wolfio.h</name>
+    <name>wolfmath.h</name>
+    <name>x509v3.h</name>
+  </headers>
+  <sources>
+    <name>aes.c</name>
+    <name>asn.c</name>
+    <name>bio.c</name>
+    <name>chacha.c</name>
+    <name>chacha20_poly1305.c</name>
+    <name>coding.c</name>
+    <name>dh.c</name>
+    <name>ecc.c</name>
+    <name>error.c</name>
+    <name>evp.c</name>
+    <name>hash.c</name>
+    <name>hmac.c</name>
+    <name>internal.c</name>
+    <name>logging.c</name>
+    <name>md5.c</name>
+    <name>memory.c</name>
+    <name>pkcs12.c</name>
+    <name>poly1305.c</name>
+    <name>pwdbased.c</name>
+    <name>random.c</name>
+    <name>sha.c</name>
+    <name>sha256.c</name>
+    <name>sha3.c</name>
+    <name>sha512.c</name>
+    <name>signature.c</name>
+    <name>ssl.c</name>
+    <name>tfm.c</name>
+    <name>tls.c</name>
+    <name>tls13.c</name>
+    <name>wc_encrypt.c</name>
+    <name>wc_port.c</name>
+    <name>wolfio.c</name>
+    <name>wolfmath.c</name>
+  </sources>
+  <libs>
+    <name>libwolfssl.so.24.0.0</name>
+  </libs>
+  <symbols>1366</symbols>
+  <types>403</types>
+  <verdict>incompatible</verdict>
+  <affected>14.3</affected>
+</test_results>
+
+<problem_summary>
+  <added_symbols>0</added_symbols>
+  <removed_symbols>0</removed_symbols>
+  <problems_with_types>
+    <high>0</high>
+    <medium>4</medium>
+    <low>2</low>
+    <safe>0</safe>
+  </problems_with_types>
+  <problems_with_symbols>
+    <high>2</high>
+    <medium>3</medium>
+    <low>1</low>
+    <safe>0</safe>
+  </problems_with_symbols>
+  <problems_with_constants>
+    <low>0</low>
+  </problems_with_constants>
+</problem_summary>
+
+
+<added_symbols>
+</added_symbols>
+
+<removed_symbols>
+</removed_symbols>
+
+<problems_with_types severity="High">
+</problems_with_types>
+
+<problems_with_symbols severity="High">
+  <header name="ssl.c">
+    <library name="libwolfssl.so.24.0.0">
+      <symbol name="wolfSSL_CTX_new">
+        <problem id="Added_Middle_Parameter">
+          <change target="foo" param_type="char">Parameter @target of type @param_type has been added to the calling stack at the middle position.</change>
+          <effect>Layout of parameter's stack has been changed and therefore parameters at higher positions in the stack may be incorrectly initialized by applications.</effect>
+        </problem>
+      </symbol>
+      <symbol name="wolfSSL_CTX_use_certificate_file">
+        <problem id="Parameter_Type_And_Size">
+          <change target="format" param_pos="3rd" old_value="int" old_size="32" new_value="word16" new_size="16">Type of @param_pos parameter @target has been changed from @old_value (@old_size) to @new_value (@new_size).</change>
+          <effect>Layout of parameter's stack has been changed and therefore parameters at higher positions in the stack may be incorrectly initialized by applications.</effect>
+        </problem>
+      </symbol>
+    </library>
+  </header>
+</problems_with_symbols>
+
+<problems_with_types severity="Medium">
+  <header name="asn.h">
+    <type name="struct DecodedCert">
+      <problem id="Removed_Field">
+        <change target="badDate">Field @target has been removed from this type.</change>
+        <effect>Applications will access incorrect memory when attempting to access this field.</effect>
+      </problem>
+      <problem id="Removed_Field">
+        <change target="criticalExt">Field @target has been removed from this type.</change>
+        <effect>Applications will access incorrect memory when attempting to access this field.</effect>
+      </problem>
+      <affected>
+        <symbol name="FreeDecodedCert" param="cert">
+          <comment>1st parameter @param (pointer) has base type struct DecodedCert.</comment>
+        </symbol>
+        <symbol name="InitDecodedCert" param="cert">
+          <comment>1st parameter @param (pointer) has base type struct DecodedCert.</comment>
+        </symbol>
+        <symbol name="ParseCert" param="cert">
+          <comment>1st parameter @param (pointer) has base type struct DecodedCert.</comment>
+        </symbol>
+      </affected>
+    </type>
+  </header>
+  <header name="internal.h">
+    <type name="struct CRL_Entry">
+      <problem id="Removed_Field_And_Size">
+        <change target="extAuthKeyId">Field @target has been removed from this type.</change>
+        <effect>1) Applications will access incorrect memory when attempting to access this field.2) Size of the inclusive type has been changed.</effect>
+      </problem>
+      <problem id="Removed_Field_And_Size">
+        <change target="extAuthKeyIdSet">Field @target has been removed from this type.</change>
+        <effect>1) Applications will access incorrect memory when attempting to access this field.2) Size of the inclusive type has been changed.</effect>
+      </problem>
+      <affected>
+        <symbol name="BioReceive" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="BioSend" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="EmbedReceive" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="EmbedSend" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="SSL_COMP_get_compression_methods" param="retval" field="retval.data.info.crl.crlList">
+          <comment>Field @field in the return value (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="SSL_CTX_set_tmp_dh_callback" param="ctx" field="ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="SSL_ResourceFree" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="wolfSSL_accept" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="wolfSSL_accept_TLSv13" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="wolfSSL_AllowEncryptThenMac" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+      </affected>
+    </type>
+  </header>
+</problems_with_types>
+
+<problems_with_symbols severity="Medium">
+  <header name="random.c">
+    <library name="libwolfssl.so.24.0.0">
+      <symbol name="wc_rng_new">
+        <problem id="Added_Parameter">
+          <change target="devId" param_type="int">Parameter @target of type @param_type has been added to the calling stack.</change>
+          <effect>This parameter will not be initialized by old clients.</effect>
+        </problem>
+      </symbol>
+    </library>
+  </header>
+  <header name="ssl.c">
+    <library name="libwolfssl.so.24.0.0">
+      <symbol name="wolfSSL_CTX_new">
+        <problem id="Added_Parameter">
+          <change target="bar" param_type="int">Parameter @target of type @param_type has been added to the calling stack.</change>
+          <effect>This parameter will not be initialized by old clients.</effect>
+        </problem>
+      </symbol>
+      <symbol name="wolfSSL_CTX_set_session_cache_mode">
+        <problem id="Return_Type_And_Size">
+          <change old_value="long" old_size="64" new_value="word16" new_size="16">Type of return value has been changed from @old_value (@old_size) to @new_value (@new_size).</change>
+          <effect>Applications will obtain a different return value and execution may change.</effect>
+        </problem>
+      </symbol>
+    </library>
+  </header>
+</problems_with_symbols>
+
+<problems_with_types severity="Low">
+  <header name="asn.h">
+    <type name="struct DecodedCert">
+      <problem id="Added_Field">
+        <change target="tsip_encRsaKeyIdx">Field @target has been added to this type.</change>
+        <effect>This field will not be initialized by old clients.NOTE: this field should be accessed only from the new library functions, otherwise it may result in crash or incorrect behavior of applications.</effect>
+      </problem>
+      <affected>
+        <symbol name="FreeDecodedCert" param="cert">
+          <comment>1st parameter @param (pointer) has base type struct DecodedCert.</comment>
+        </symbol>
+        <symbol name="InitDecodedCert" param="cert">
+          <comment>1st parameter @param (pointer) has base type struct DecodedCert.</comment>
+        </symbol>
+        <symbol name="ParseCert" param="cert">
+          <comment>1st parameter @param (pointer) has base type struct DecodedCert.</comment>
+        </symbol>
+      </affected>
+    </type>
+  </header>
+  <header name="internal.h">
+    <type name="struct CRL_Entry">
+      <problem id="DataType_Size">
+        <change old_size="1344" new_size="1152">Size of this type has been changed from @old_size to @new_size.</change>
+        <effect>The fields or parameters of such data type may be incorrectly initialized or accessed by old client applications.</effect>
+      </problem>
+      <affected>
+        <symbol name="BioReceive" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="BioSend" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="EmbedReceive" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="EmbedSend" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="SSL_COMP_get_compression_methods" param="retval" field="retval.data.info.crl.crlList">
+          <comment>Field @field in the return value (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="SSL_CTX_set_tmp_dh_callback" param="ctx" field="ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="SSL_ResourceFree" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="wolfSSL_accept" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="wolfSSL_accept_TLSv13" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="wolfSSL_AllowEncryptThenMac" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+      </affected>
+    </type>
+  </header>
+</problems_with_types>
+
+<problems_with_symbols severity="Low">
+  <header name="ssl.c">
+    <library name="libwolfssl.so.24.0.0">
+      <symbol name="wolfSSL_free">
+        <problem id="Return_Type_From_Void">
+          <change new_value="int" new_size="32">Type of return value has been changed from void to @new_value (@new_size).</change>
+          <effect>Replacement of return type may indicate a change in its semantic meaning.</effect>
+        </problem>
+      </symbol>
+    </library>
+  </header>
+</problems_with_symbols>
+
+<problems_with_constants severity="Low">
+</problems_with_constants>
+
+<problems_with_types severity="Safe">
+</problems_with_types>
+
+<problems_with_symbols severity="Safe">
+</problems_with_symbols>
+
+<problems_with_constants severity="Low">
+</problems_with_constants>
+
+</report>
+<report kind="source" version="1.2">
+
+<test_info>
+  <library>wolfSSL</library>
+  <version1>
+    <number>v4.3.0-stable</number>
+    <arch>x86_64</arch>
+    <gcc>8.3.0</gcc>
+  </version1>
+  <version2>
+    <number>test-branch</number>
+    <arch>x86_64</arch>
+    <gcc>8.3.0</gcc>
+  </version2>
+</test_info>
+
+<test_results>
+  <headers>
+    <name>aes.h</name>
+    <name>arc4.h</name>
+    <name>asn.h</name>
+    <name>asn_public.h</name>
+    <name>bn.h</name>
+    <name>chacha.h</name>
+    <name>coding.h</name>
+    <name>conf.h</name>
+    <name>dh.h</name>
+    <name>dirent.h</name>
+    <name>dsa.h</name>
+    <name>ec.h</name>
+    <name>ecc.h</name>
+    <name>ecdsa.h</name>
+    <name>error-crypt.h</name>
+    <name>evp.h</name>
+    <name>FILE.h</name>
+    <name>hash.h</name>
+    <name>hmac.h</name>
+    <name>internal.h</name>
+    <name>logging.h</name>
+    <name>md5.h</name>
+    <name>memory.h</name>
+    <name>pkcs12.h</name>
+    <name>poly1305.h</name>
+    <name>pthreadtypes.h</name>
+    <name>pwdbased.h</name>
+    <name>random.h</name>
+    <name>rsa.h</name>
+    <name>sha.h</name>
+    <name>sha256.h</name>
+    <name>sha3.h</name>
+    <name>sha512.h</name>
+    <name>signature.h</name>
+    <name>ssl.h</name>
+    <name>stack.h</name>
+    <name>stat.h</name>
+    <name>stddef.h</name>
+    <name>struct_FILE.h</name>
+    <name>struct_iovec.h</name>
+    <name>struct_timespec.h</name>
+    <name>struct_tm.h</name>
+    <name>tfm.h</name>
+    <name>thread-shared-types.h</name>
+    <name>time_t.h</name>
+    <name>types.h</name>
+    <name>wc_encrypt.h</name>
+    <name>wc_port.h</name>
+    <name>wolfio.h</name>
+    <name>wolfmath.h</name>
+    <name>x509v3.h</name>
+  </headers>
+  <sources>
+    <name>aes.c</name>
+    <name>asn.c</name>
+    <name>bio.c</name>
+    <name>chacha.c</name>
+    <name>chacha20_poly1305.c</name>
+    <name>coding.c</name>
+    <name>dh.c</name>
+    <name>ecc.c</name>
+    <name>error.c</name>
+    <name>evp.c</name>
+    <name>hash.c</name>
+    <name>hmac.c</name>
+    <name>internal.c</name>
+    <name>logging.c</name>
+    <name>md5.c</name>
+    <name>memory.c</name>
+    <name>pkcs12.c</name>
+    <name>poly1305.c</name>
+    <name>pwdbased.c</name>
+    <name>random.c</name>
+    <name>sha.c</name>
+    <name>sha256.c</name>
+    <name>sha3.c</name>
+    <name>sha512.c</name>
+    <name>signature.c</name>
+    <name>ssl.c</name>
+    <name>tfm.c</name>
+    <name>tls.c</name>
+    <name>tls13.c</name>
+    <name>wc_encrypt.c</name>
+    <name>wc_port.c</name>
+    <name>wolfio.c</name>
+    <name>wolfmath.c</name>
+  </sources>
+  <libs>
+    <name>libwolfssl.so.24.0.0</name>
+  </libs>
+  <symbols>1366</symbols>
+  <types>403</types>
+  <verdict>incompatible</verdict>
+  <affected>28.6</affected>
+</test_results>
+
+<problem_summary>
+  <added_symbols>0</added_symbols>
+  <removed_symbols>0</removed_symbols>
+  <problems_with_types>
+    <high>4</high>
+    <medium>0</medium>
+    <low>1</low>
+    <safe>0</safe>
+  </problems_with_types>
+  <problems_with_symbols>
+    <high>1</high>
+    <medium>2</medium>
+    <low>2</low>
+    <safe>1</safe>
+  </problems_with_symbols>
+  <problems_with_constants>
+    <low>0</low>
+  </problems_with_constants>
+</problem_summary>
+
+
+<added_symbols>
+</added_symbols>
+
+<removed_symbols>
+</removed_symbols>
+
+<problems_with_types severity="High">
+  <header name="asn.h">
+    <type name="struct DecodedCert">
+      <problem id="Removed_Field">
+        <change target="badDate">Field @target has been removed from this type.</change>
+        <effect type_name="struct DecodedCert" target="badDate">Recompilation of a client program may be broken with the error message: '@type_name' has no member named '@target'.</effect>
+      </problem>
+      <problem id="Removed_Field">
+        <change target="criticalExt">Field @target has been removed from this type.</change>
+        <effect type_name="struct DecodedCert" target="criticalExt">Recompilation of a client program may be broken with the error message: '@type_name' has no member named '@target'.</effect>
+      </problem>
+      <affected>
+        <symbol name="FreeDecodedCert" param="cert">
+          <comment>1st parameter @param (pointer) has base type struct DecodedCert.</comment>
+        </symbol>
+        <symbol name="InitDecodedCert" param="cert">
+          <comment>1st parameter @param (pointer) has base type struct DecodedCert.</comment>
+        </symbol>
+        <symbol name="ParseCert" param="cert">
+          <comment>1st parameter @param (pointer) has base type struct DecodedCert.</comment>
+        </symbol>
+      </affected>
+    </type>
+  </header>
+  <header name="internal.h">
+    <type name="struct CRL_Entry">
+      <problem id="Removed_Field">
+        <change target="extAuthKeyId">Field @target has been removed from this type.</change>
+        <effect type_name="struct CRL_Entry" target="extAuthKeyId">Recompilation of a client program may be broken with the error message: '@type_name' has no member named '@target'.</effect>
+      </problem>
+      <problem id="Removed_Field">
+        <change target="extAuthKeyIdSet">Field @target has been removed from this type.</change>
+        <effect type_name="struct CRL_Entry" target="extAuthKeyIdSet">Recompilation of a client program may be broken with the error message: '@type_name' has no member named '@target'.</effect>
+      </problem>
+      <affected>
+        <symbol name="BioReceive" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="BioSend" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="EmbedReceive" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="EmbedSend" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="SSL_COMP_get_compression_methods" param="retval" field="retval.data.info.crl.crlList">
+          <comment>Field @field in the return value (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="SSL_CTX_set_tmp_dh_callback" param="ctx" field="ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="SSL_ResourceFree" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="wolfSSL_accept" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="wolfSSL_accept_TLSv13" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+        <symbol name="wolfSSL_AllowEncryptThenMac" param="ssl" field="ssl.ctx.ca_names.data.info.crl.crlList">
+          <comment>Field @field in 1st parameter @param (pointer) has base type struct CRL_Entry.</comment>
+        </symbol>
+      </affected>
+    </type>
+  </header>
+</problems_with_types>
+
+<problems_with_symbols severity="High">
+  <header name="ssl.c">
+    <library name="libwolfssl.so.24.0.0">
+      <symbol name="wolfSSL_CTX_new">
+        <problem id="Added_Middle_Parameter">
+          <change target="foo" param_type="char">Parameter @target of type @param_type has been added to the calling stack at the middle position.</change>
+          <effect>Recompilation of a client program may be broken.</effect>
+        </problem>
+      </symbol>
+    </library>
+  </header>
+</problems_with_symbols>
+
+<problems_with_types severity="Medium">
+</problems_with_types>
+
+<problems_with_symbols severity="Medium">
+  <header name="random.c">
+    <library name="libwolfssl.so.24.0.0">
+      <symbol name="wc_rng_new">
+        <problem id="Added_Parameter">
+          <change target="devId" param_type="int">Parameter @target of type @param_type has been added to the calling stack.</change>
+          <effect>Recompilation of a client program may be broken.</effect>
+        </problem>
+      </symbol>
+    </library>
+  </header>
+  <header name="ssl.c">
+    <library name="libwolfssl.so.24.0.0">
+      <symbol name="wolfSSL_CTX_new">
+        <problem id="Added_Parameter">
+          <change target="bar" param_type="int">Parameter @target of type @param_type has been added to the calling stack.</change>
+          <effect>Recompilation of a client program may be broken.</effect>
+        </problem>
+      </symbol>
+    </library>
+  </header>
+</problems_with_symbols>
+
+<problems_with_types severity="Low">
+  <header name="asn.h">
+    <type name="struct DecodedCert">
+      <problem id="Added_Field">
+        <change target="tsip_encRsaKeyIdx">Field @target has been added to this type.</change>
+        <effect>This field will not be initialized or used by old client applications.</effect>
+      </problem>
+      <affected>
+        <symbol name="FreeDecodedCert" param="cert">
+          <comment>1st parameter @param (pointer) has base type struct DecodedCert.</comment>
+        </symbol>
+        <symbol name="InitDecodedCert" param="cert">
+          <comment>1st parameter @param (pointer) has base type struct DecodedCert.</comment>
+        </symbol>
+        <symbol name="ParseCert" param="cert">
+          <comment>1st parameter @param (pointer) has base type struct DecodedCert.</comment>
+        </symbol>
+      </affected>
+    </type>
+  </header>
+</problems_with_types>
+
+<problems_with_symbols severity="Low">
+  <header name="ssl.c">
+    <library name="libwolfssl.so.24.0.0">
+      <symbol name="wolfSSL_CTX_set_session_cache_mode">
+        <problem id="Return_Type">
+          <change old_value="long" new_value="word16">Type of return value has been changed from @old_value to @new_value.</change>
+          <effect>Recompilation of a client program may be broken.</effect>
+        </problem>
+      </symbol>
+      <symbol name="wolfSSL_CTX_use_certificate_file">
+        <problem id="Parameter_Type">
+          <change target="format" param_pos="3rd" old_value="int" new_value="word16">Type of @param_pos parameter @target has been changed from @old_value to @new_value.</change>
+          <effect>Recompilation of a client program may be broken.</effect>
+        </problem>
+      </symbol>
+    </library>
+  </header>
+</problems_with_symbols>
+
+<problems_with_constants severity="Low">
+</problems_with_constants>
+
+<problems_with_types severity="Safe">
+</problems_with_types>
+
+<problems_with_symbols severity="Safe">
+  <header name="ssl.c">
+    <library name="libwolfssl.so.24.0.0">
+      <symbol name="wolfSSL_free">
+        <problem id="Return_Type_From_Void">
+          <change new_value="int">Type of return value has been changed from void to @new_value.</change>
+          <effect>No effect.</effect>
+        </problem>
+      </symbol>
+    </library>
+  </header>
+</problems_with_symbols>
+
+<problems_with_constants severity="Low">
+</problems_with_constants>
+
+</report>
+</reports>

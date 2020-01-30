@@ -1,3 +1,5 @@
+abi-test
+========
 
 make sure no *wolf* in /usr/local/lib
 
@@ -75,3 +77,9 @@ read I hear you fa shizzle!
 bye
 
 
+abi-scan
+========
+
+Script to run abi-dumper on a commit under test and a control commit and
+then runs abi-compliance-checker on the dump files to generate a report.
+Also has a groovy script to process the report.
