@@ -31,7 +31,7 @@ const char* clientCert = "./certs/client-cert.pem";
 const char* clientKey = "./certs/client-key.pem";
 
 
-static inline void
+static inline WC_NORETURN void
 err_sys(const char* msg)
 {
     printf("wolfSSL error: %s\n", msg);
@@ -180,7 +180,7 @@ void tcp_connect(SOCKET_T* sockfd, const char* ip, unsigned short port)
 static
 int print_time(const char* desc, const unsigned char* time)
 {
-    int i, length;
+    int length;
     unsigned char flatTime[64];
     unsigned char type;
 
@@ -203,7 +203,6 @@ int print_cert(const char* desc, WOLFSSL_X509* cert)
     const unsigned char* xTime;
     char* nameP;
     char name[256];
-    unsigned char length, type;
 
     printf("%s\n", desc);
     xName = wolfSSL_X509_get_issuer_name(cert);
@@ -340,13 +339,10 @@ int test_connection(int ver, int port)
     WOLFSSL_METHOD* method;
     const char* sni;
     int ret;
+    long mode;
 
     printf("test_connection(%d, %d)\n", ver, port);
     switch (ver) {
-        case 1:
-            method = wolfTLSv1_1_client_method();
-            ver = /* TLSv1_1_MINOR*/ 2;
-            break;
         case 3:
             method = wolfTLSv1_3_client_method();
             ver = /* TLSv1_3_MINOR */ 4;
@@ -372,8 +368,9 @@ int test_connection(int ver, int port)
         printf("couldn't verify the CTX's new device ID\n");
 
     wolfSSL_CTX_SetEccSignCb(ctx, test_ecc_sign_cb);
-    ret = wolfSSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_NO_AUTO_CLEAR);
-    printf("CTX_set_session_cache_mode ret = %d\n", ret);
+    mode = wolfSSL_CTX_set_session_cache_mode(ctx,
+            SSL_SESS_CACHE_NO_AUTO_CLEAR);
+    printf("CTX_set_session_cache_mode ret = %lu\n", mode);
 
     WOLFSSL* ssl = wolfSSL_new(ctx);
     if (ssl)
@@ -513,7 +510,6 @@ int main(int argc, char* argv[])
     test_cert_use();
     test_ecc_key();
 
-    test_connection(1, port);
     test_connection(2, port);
     test_connection(3, port);
 
