@@ -7,6 +7,9 @@ class AbiReportCheck {
 
     static void main(String[] args) {
 
+        File reportFile = new File(args.size() ? args[0] : "./report.xml")
+        if (!reportFile.exists()) System.exit(1)
+
         def abi = [
             "wc_ecc_free",
             "wc_ecc_init_ex",
@@ -66,7 +69,7 @@ class AbiReportCheck {
         def check = [] as Set
 
         def xml = new XmlParser()
-        def report = xml.parse("./example-report.xml")
+        def report = xml.parse(reportFile)
 
         report.report.problems_with_symbols.each { problem->
             problem.header.each { header->
@@ -76,9 +79,13 @@ class AbiReportCheck {
             }
         }
 
-        println check
+        def result = abi.intersect(check)
 
-        println "intersect size " + abi.intersect(check).size()
+        if (result.size() != 0) {
+            println result
+            System.exit(2)
+        }
+
     }
 
 }
