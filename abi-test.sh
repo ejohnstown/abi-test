@@ -1,7 +1,7 @@
 #!/bin/bash
 
 _reftag="v4.3.0-stable"
-: ${CC="gcc"}
+: "${CC=gcc}"
 export CC
 
 case "$#" in
@@ -34,7 +34,7 @@ _confcli=(
     --enable-sessioncerts
     --enable-sni
     --enable-tls13
-    --prefix="$PWD/local"
+    "--prefix=$PWD/local"
 )
 _confsrv=(
     --disable-dependency-tracking
@@ -43,6 +43,9 @@ _confsrv=(
     --enable-sni
     --enable-tls13
 )
+
+echo "Cleaning up from previous run"
+rm -rf local abi-ready client.c client client-san server
 
 # Save out the test client source code.
 (
@@ -833,6 +836,7 @@ function onExit {
     echo "On exit!"
     if test "x$_pid" != "x"
     then
+        echo "stopping server pid $_pid"
         kill "$_pid"
     fi
     if test "x$_originalref" != "x"
@@ -842,8 +846,8 @@ function onExit {
 }
 trap onExit EXIT
 
-echo "client: ./configure ${_confcli[@]}"
-echo "server: ./configure ${_confsrv[@]}"
+echo "client: ./configure ${_confcli[*]}"
+echo "server: ./configure ${_confsrv[*]}"
 
 _originalref="$(git rev-parse --abbrev-ref HEAD)"
 if test "x$_originalref" = "xHEAD"
@@ -871,7 +875,7 @@ make install
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PWD/local/lib"
 
 echo "updating library link"
-case "$(ls $PWD/local/lib)" in
+case "$(ls "$PWD"/local/lib)" in
 *.dylib*)
     _oln="libwolfssl.3.dylib"
     _ln="libwolfssl.dylib"
@@ -883,11 +887,13 @@ case "$(ls $PWD/local/lib)" in
 esac
 
 echo "Building the testing client"
-gcc -o client client.c -L./local/lib -I./local/include -lwolfssl -lm
+$CC -o client client.c -L./local/lib -I./local/include -lwolfssl -lm
+$CC -fsanitize=address -o client-san client.c -L./local/lib -I./local/include -lwolfssl -lm
 
 echo "Starting up the testing server"
 ./server -c ./certs/test/server-localhost.pem -v d -d -i -p 0 -R abi-ready &
 _pid=$!
+echo "starting server pid $_pid"
 
 _counter=0
 while test ! -s abi-ready -a "$_counter" -lt 20
@@ -935,9 +941,9 @@ fi
 echo "======================================================================="
 
 echo "linking reference library to current library"
-pushd local/lib
+pushd local/lib || exit 2
 ln -sf "$_ln" "$_oln"
-popd
+popd || exit 2
 
 echo "======================================================================="
 echo "case 4: built with old library, running with new linked as old (expect success)"
@@ -948,4 +954,30 @@ then
 fi
 echo "======================================================================="
 
+echo "running inside valgrind"
+echo "======================================================================="
+echo "case 5: built with old library, running with new linked as old with valgrind (expect success)"
+if test -x "$(command -v valgrind)"
+then
+    if ! valgrind --leak-check=full ./client "$(cat abi-ready)"
+    then
+        echo "case 5: Expected success, failed. Fail."
+        exit 1
+    fi
+else
+    echo "case 5: skipped, valgrind not available"
+fi
+echo "======================================================================="
+
+echo "rebuilding new library with sanitize address"
+echo "======================================================================="
+echo "case 6: built with old library, running with new linked as old with sanitize-address (expect success)"
+CC="$CC -fsanitize=address"
+./configure "${_confcli[@]}"
+make install
+
+if ! ./client-san "$(cat abi-ready)"
+then
+    echo "case 6: Expected success, failed. Fail."
+fi
 echo "end"
