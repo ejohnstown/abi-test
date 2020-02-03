@@ -1,9 +1,28 @@
 #!/bin/bash
 
-_pwd="$PWD"
 _reftag="v4.3.0-stable"
-_mastertag="master"
-_repo="https://github.com/wolfssl/wolfssl.git"
+: ${CC="gcc"}
+export CC
+
+case "$#" in
+0)
+    ;;
+1)
+    if test "x$1" = "x--help" -o "x$1" = "x-h"
+    then
+        echo "Usage: $0 [REFTAG]"
+        echo "REFTAG    - old commit to test against"
+        exit 1
+    fi
+
+    _reftag="$2"
+    ;;
+*)
+    echo "Usage: $0 [REFTAG]"
+    echo "REFTAG    - old commit to test against"
+    exit 1
+    ;;
+esac
 
 _confcli=(
     --disable-dependency-tracking
@@ -15,7 +34,7 @@ _confcli=(
     --enable-sessioncerts
     --enable-sni
     --enable-tls13
-    --prefix="$_pwd/local"
+    --prefix="$PWD/local"
 )
 _confsrv=(
     --disable-dependency-tracking
@@ -23,17 +42,6 @@ _confsrv=(
     --enable-alpn
     --enable-sni
     --enable-tls13
-)
-_servercert=./certs/server-localhost.pem
-
-_certs=(
-    certs/ca-cert.pem
-    certs/client-cert.pem
-    certs/client-key.pem
-    certs/dh2048.pem
-    certs/ntru-key.raw
-    certs/server-key.pem
-    certs/test/server-localhost.pem
 )
 
 # Save out the test client source code.
@@ -67,7 +75,7 @@ typedef struct sockaddr_in  SOCKADDR_IN_T;
 #define AF_INET_V    AF_INET
 
 
-const char* caCert = "./certs/server-localhost.pem";
+const char* caCert = "./certs/test/server-localhost.pem";
 const char* clientCert = "./certs/client-cert.pem";
 const char* clientKey = "./certs/client-key.pem";
 
@@ -527,12 +535,14 @@ int test_connection(int ver, int port)
             SSL_SESS_CACHE_NO_AUTO_CLEAR);
     if (mode != SSL_SUCCESS) {
         fprintf(stderr, "CTX_set_session_cache_mode() failed (%lu)\n", mode);
+        ret = -1;
         goto doCleanup;
     }
 
     ssl = wolfSSL_new(ctx);
     if (ssl == NULL) {
         fprintf(stderr, "wolfSSL_new() failed\n");
+        ret = -1;
         goto doCleanup;
     }
 
@@ -819,45 +829,49 @@ doExit:
 EOF
 ) >client.c
 
+function onExit {
+    echo "On exit!"
+    if test "x$_pid" != "x"
+    then
+        kill "$_pid"
+    fi
+    if test "x$_originalref" != "x"
+    then
+        git checkout -f "$_originalref"
+    fi
+}
+trap onExit EXIT
+
 echo "client: ./configure ${_confcli[@]}"
 echo "server: ./configure ${_confsrv[@]}"
 
-if test ! -d wolfssl
+_originalref="$(git rev-parse --abbrev-ref HEAD)"
+if test "x$_originalref" = "xHEAD"
 then
-    echo "Fetching $_repo from GitHub"
-    git clone "$_repo" wolfssl
+    # if the original ref is just HEAD, get the current commit hash
+    _originalref="$(git rev-parse HEAD | head -1)"
 fi
-
-echo "Cleanup from previous run"
-rm -rf abi-ready local server certs wolfssl/support/wolfssl.pc
-mkdir -p local certs
-
-pushd wolfssl
-
-git checkout "$_mastertag"
-git fetch origin
-git reset --hard origin/"$_mastertag"
+echo "original ref: $_originalref"
 
 echo "Building the static current version server tool"
 ./autogen.sh
 ./configure "${_confsrv[@]}"
 make examples/server/server
-cp examples/server/server "$_pwd"
-cp "${_certs[@]}" "$_pwd/certs"
+cp examples/server/server "$PWD"
 
 echo "Building the reference library"
 git checkout "$_reftag"
-#git reset --hard origin/"$_reftag"
+# The following library version is chosen because it produces a known "older"
+# library version on the dynamic library file.
 sed -e '/^WOLFSSL_LIBRARY_VERSION/ s/.*/WOLFSSL_LIBRARY_VERSION=9:0:6/' -i.bak configure.ac
 ./autogen.sh
 ./configure "${_confcli[@]}"
 make install
-popd
 
-export LD_LIBRARY_PATH="$_pwd/local/lib"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PWD/local/lib"
 
 echo "updating library link"
-case "$(ls $_pwd/local/lib)" in
+case "$(ls $PWD/local/lib)" in
 *.dylib*)
     _oln="libwolfssl.3.dylib"
     _ln="libwolfssl.dylib"
@@ -872,7 +886,7 @@ echo "Building the testing client"
 gcc -o client client.c -L./local/lib -I./local/include -lwolfssl -lm
 
 echo "Starting up the testing server"
-./server -c "$_servercert" -v d -d -i -p 0 -R abi-ready &
+./server -c ./certs/test/server-localhost.pem -v d -d -i -p 0 -R abi-ready &
 _pid=$!
 
 _counter=0
@@ -906,14 +920,12 @@ then
 fi
 echo "======================================================================="
 
-echo "Installing current wolfSSL"
-pushd wolfssl
+echo "Installing wolfSSL commit under test"
 rm -f support/wolfssl.pc
-git checkout --force "$_mastertag"
+git checkout --force "$_originalref"
 ./autogen.sh
 ./configure "${_confcli[@]}"
 make install
-popd
 
 echo "======================================================================="
 echo "case 3: built with old library, running with new (expect fail)"
