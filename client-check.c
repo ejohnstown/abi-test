@@ -26,7 +26,7 @@ typedef struct sockaddr_in  SOCKADDR_IN_T;
 #define AF_INET_V    AF_INET
 
 
-const char* caCert = "./certs/server-localhost.pem";
+const char* caCert = "./certs/test/server-localhost.pem";
 const char* clientCert = "./certs/client-cert.pem";
 const char* clientKey = "./certs/client-key.pem";
 
@@ -486,12 +486,14 @@ int test_connection(int ver, int port)
             SSL_SESS_CACHE_NO_AUTO_CLEAR);
     if (mode != SSL_SUCCESS) {
         fprintf(stderr, "CTX_set_session_cache_mode() failed (%lu)\n", mode);
+        ret = -1;
         goto doCleanup;
     }
 
     ssl = wolfSSL_new(ctx);
     if (ssl == NULL) {
         fprintf(stderr, "wolfSSL_new() failed\n");
+        ret = -1;
         goto doCleanup;
     }
 

@@ -892,9 +892,9 @@ _pid=$!
 _counter=0
 while test ! -s abi-ready -a "$_counter" -lt 20
 do
-	echo "waiting for ready file..."
-	sleep 0.1
-	_counter=$((_counter+1))
+    echo "waiting for ready file..."
+    sleep 0.1
+    _counter=$((_counter+1))
 done
 
 echo "======================================================================="
@@ -902,7 +902,6 @@ echo "case 1: built and run with old library (expect success)"
 if ! ./client "$(cat abi-ready)"
 then
     echo "case 1: Expected success, failed. Fail."
-	kill $_pid
     exit 1
 fi
 echo "======================================================================="
@@ -915,7 +914,6 @@ echo "case 2: no library (expect fail)"
 if ./client "$(cat abi-ready)"
 then
     echo "case 2: Expected failure, passed. Fail."
-	kill $_pid
     exit 1
 fi
 echo "======================================================================="
@@ -932,7 +930,6 @@ echo "case 3: built with old library, running with new (expect fail)"
 if ./client "$(cat abi-ready)"
 then
     echo "case 3: Expected failure, passed. Fail."
-	kill $_pid
     exit 1
 fi
 echo "======================================================================="
@@ -947,11 +944,8 @@ echo "case 4: built with old library, running with new linked as old (expect suc
 if ! ./client "$(cat abi-ready)"
 then
     echo "case 4: Expected success, failed. Fail."
-	kill $_pid
     exit 1
 fi
 echo "======================================================================="
-
-kill $_pid >/dev/null 2>&1
 
 echo "end"
